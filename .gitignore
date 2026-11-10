@@ -1,0 +1,7 @@
+**/target/
+**/application-local.properties
+**/.env
+*.log
+**/nbproject/private/
+mysql-init.txt
+*.sql.local
