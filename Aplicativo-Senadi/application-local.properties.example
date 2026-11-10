@@ -1,0 +1,5 @@
+# Copiar como application-local.properties (archivo excluido de Git).
+# Completar en tu computadora. No publicar la copia con credenciales.
+spring.datasource.url=jdbc:mysql://localhost:3306/senadi_aplicativo?connectionTimeZone=UTC
+spring.datasource.username=senadi_app
+spring.datasource.password=CAMBIAR_LOCALMENTE

@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS excel_importacion (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ archivo VARCHAR(255) NOT NULL,
+ hoja VARCHAR(255) NOT NULL,
+ encabezados LONGTEXT NOT NULL,
+ filas INT NOT NULL,
+ creado TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS excel_fila (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ importacion_id BIGINT NOT NULL,
+ numero_fila INT NOT NULL,
+ valores LONGTEXT NOT NULL,
+ CONSTRAINT fk_excel_importacion FOREIGN KEY (importacion_id) REFERENCES excel_importacion(id)
+);
