@@ -1,10 +1,103 @@
-<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SENADI · Importar Excel</title><link rel="stylesheet" href="/estilos.css"></head><body><main>
-<header><span class="marca">SENADI / GESTIÓN DE DATOS</span><span class="etiqueta">Desarrollo local · Login pendiente</span></header>
-<h1>Tus tablas, en un solo lugar.</h1><p class="subtitulo">Importa una hoja de Excel y consulta sus datos almacenados en MySQL.</p>
-<p class="ok" th:if="${mensaje}" th:text="${mensaje}"></p><p class="error" th:if="${error}" th:text="${error}"></p>
-<section class="tarjeta"><h2>Importar Excel</h2><p>Usa la primera hoja del archivo, con los encabezados en la fila 1. Se omiten las filas vacías.</p>
-<form method="post" action="/importaciones" enctype="multipart/form-data"><label for="archivo">Archivo Excel</label><input id="archivo" name="archivo" type="file" accept=".xlsx,.xls" required><p class="nota">Hasta 10 MB, 10 000 filas y 100 columnas. Convierte fórmulas a valores y separa las celdas combinadas. Cada envío crea un lote nuevo.</p><button type="submit">Importar Excel</button></form></section>
-<section class="tarjeta"><h2>Últimas importaciones</h2><p th:if="${#lists.isEmpty(lotes)}">Aún no hay importaciones. Selecciona tu primer archivo para comenzar.</p>
-<div class="tabla" th:unless="${#lists.isEmpty(lotes)}"><table><thead><tr><th>Archivo</th><th>Hoja</th><th>Filas</th><th>Fecha</th><th></th></tr></thead><tbody><tr th:each="lote:${lotes}"><td th:text="${lote.archivo}"></td><td th:text="${lote.hoja}"></td><td th:text="${lote.filas}"></td><td th:text="${lote.creado}"></td><td><a th:href="@{/importaciones/{id}(id=${lote.id})}">Ver datos →</a></td></tr></tbody></table></div></section>
-<footer>Prototipo local. La autenticación se integrará cuando esté disponible el script del login.</footer>
-</main></body></html>
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SENADI · Importar Excel</title>
+    <link rel="stylesheet" th:href="@{/estilos.css}">
+</head>
+
+<body>
+<main>
+    <header>
+        <span class="marca">SENADI / GESTIÓN DE DATOS</span>
+
+        <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+            <span class="etiqueta">Versión de desarrollo</span>
+
+            <form th:action="@{/logout}" method="post" style="margin:0;">
+                <button type="submit"
+                        style="padding:10px 18px; border:1px solid #cbd5e1;
+                               border-radius:8px; background:#fff; color:#172b45;
+                               font:inherit; font-weight:600; cursor:pointer;">
+                    Cerrar sesión
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <h1>Tus tablas, en un solo lugar.</h1>
+    <p class="subtitulo">
+        Importa una hoja de Excel y consulta sus datos almacenados en MySQL.
+    </p>
+
+    <p class="ok" th:if="${mensaje}" th:text="${mensaje}" role="status"></p>
+    <p class="error" th:if="${error}" th:text="${error}" role="alert"></p>
+
+    <section class="tarjeta">
+        <h2>Importar Excel</h2>
+        <p>
+            Usa la primera hoja del archivo, con los encabezados en la fila 1.
+            Se omiten las filas vacías.
+        </p>
+
+        <form method="post"
+              th:action="@{/importaciones}"
+              enctype="multipart/form-data">
+            <label for="archivo">Archivo Excel</label>
+            <input id="archivo" name="archivo" type="file"
+                   accept=".xlsx,.xls" aria-describedby="limites-archivo" required>
+
+            <p id="limites-archivo" class="nota">
+                Hasta 10 MB, 10 000 filas y 100 columnas.
+                Convierte fórmulas a valores y separa las celdas combinadas.
+                Cada envío crea un lote nuevo.
+            </p>
+
+            <button type="submit">Importar Excel</button>
+        </form>
+    </section>
+
+    <section class="tarjeta">
+        <h2>Últimas importaciones</h2>
+
+        <p th:if="${#lists.isEmpty(lotes)}">
+            Aún no hay importaciones.
+            Selecciona tu primer archivo para comenzar.
+        </p>
+
+        <div class="tabla" th:unless="${#lists.isEmpty(lotes)}">
+            <table>
+                <thead>
+                <tr>
+                    <th scope="col">Archivo</th>
+                    <th scope="col">Hoja</th>
+                    <th scope="col">Filas</th>
+                    <th scope="col">Fecha</th>
+                    <th scope="col">Acciones</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                <tr th:each="lote : ${lotes}">
+                    <td th:text="${lote.archivo}"></td>
+                    <td th:text="${lote.hoja}"></td>
+                    <td th:text="${lote.filas}"></td>
+                    <td th:text="${lote.creado}"></td>
+                    <td>
+                        <a th:href="@{/importaciones/{id}(id=${lote.id})}">
+                            Ver datos →
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <footer>
+        Servicio Nacional de Derechos Intelectuales ·
+    </footer>
+</main>
+</body>
+</html>
