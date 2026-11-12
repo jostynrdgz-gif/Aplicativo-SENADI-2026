@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SENADI · Matriz POA</title>
+    <link rel="stylesheet" th:href="@{/estilos.css}">
+</head>
+<body>
+<main>
+    <header>
+        <span class="marca">SENADI / GESTIÓN DE DATOS</span>
+        <div class="sesion">
+            <div class="identidad">
+                <strong th:text="${usuarioActual}"></strong>
+                <span class="etiqueta" th:text="${rolActual}"></span>
+            </div>
+            <form th:action="@{/logout}" method="post">
+                <button class="boton-secundario" type="submit">Cerrar sesión</button>
+            </form>
+        </div>
+    </header>
+    <h1>Matriz POA</h1>
+    <p class="subtitulo" th:if="${puedeImportar}">Publica la matriz para que el departamento Financiero pueda consultarla.</p>
+    <p class="subtitulo" th:unless="${puedeImportar}">Consulta la matriz publicada por el departamento de Planificación.</p>
+    <p class="ok" th:if="${mensaje}" th:text="${mensaje}" role="status"></p>
+    <p class="error" th:if="${error}" th:text="${error}" role="alert"></p>
+
+    <section class="tarjeta" th:if="${puedeImportar}">
+        <h2>Subir matriz POA</h2>
+        <p>La nueva matriz será la vigente para ambos departamentos.</p>
+        <form method="post" th:action="@{/importaciones}" enctype="multipart/form-data">
+            <label for="archivo">Archivo Excel</label>
+            <input id="archivo" name="archivo" type="file" accept=".xlsx,.xls" required aria-describedby="limites-archivo">
+            <p id="limites-archivo" class="nota">Por ahora, usa la primera hoja con encabezados en la fila 1, sin fórmulas ni celdas combinadas. Hasta 10 MB, 10 000 filas y 100 columnas.</p>
+            <button type="submit">Subir matriz POA</button>
+        </form>
+    </section>
+
+    <section class="tarjeta" th:if="${lote == null}">
+        <h2>Matriz disponible</h2>
+        <p role="status">No se ha subido ninguna matriz POA.</p>
+    </section>
+    <section class="tarjeta" th:if="${lote != null}">
+        <h2 th:text="${lote.archivo}"></h2>
+        <p>Hoja: <strong th:text="${lote.hoja}"></strong> · <span th:text="${lote.filas}"></span> filas · Subida por <span th:text="${lote.subido_por}"></span> · <span th:text="${lote.creado}"></span></p>
+        <div class="tabla" tabindex="0" role="region" aria-label="Datos de la matriz POA">
+            <table>
+                <thead><tr><th scope="col" th:each="columna : ${lote.encabezados}" th:text="${columna}"></th></tr></thead>
+                <tbody><tr th:each="fila : ${lote.datos}"><td th:each="celda : ${fila}" th:text="${celda}"></td></tr></tbody>
+            </table>
+        </div>
+        <nav class="paginacion" aria-label="Páginas de la matriz" th:if="${lote.paginas > 1}">
+            <a th:if="${lote.pagina > 1}" th:href="@{/(pagina=${lote.pagina - 1})}">Anterior</a>
+            <span>Página <span th:text="${lote.pagina}"></span> de <span th:text="${lote.paginas}"></span></span>
+            <a th:if="${lote.pagina < lote.paginas}" th:href="@{/(pagina=${lote.pagina + 1})}">Siguiente</a>
+        </nav>
+    </section>
+    <footer>Servicio Nacional de Derechos Intelectuales</footer>
+</main>
+</body>
+</html>

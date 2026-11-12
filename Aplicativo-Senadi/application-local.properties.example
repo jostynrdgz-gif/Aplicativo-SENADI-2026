@@ -3,3 +3,7 @@
 spring.datasource.url=jdbc:mysql://localhost:3306/senadi_aplicativo?connectionTimeZone=UTC
 spring.datasource.username=senadi_app
 spring.datasource.password=CAMBIAR_LOCALMENTE
+spring.sql.init.mode=never
+# Usuarios temporales de la aplicación; contraseñas distintas de MySQL.
+senadi.login.planificacion.password=CAMBIAR_CLAVE_PLANIFICACION
+senadi.login.financiero.password=CAMBIAR_CLAVE_FINANCIERO

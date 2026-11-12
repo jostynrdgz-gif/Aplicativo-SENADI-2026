@@ -1,6 +1,8 @@
 package ec.senadi;
 
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.User;
@@ -19,13 +21,21 @@ public class logincontrol {
     }
 
     @Bean
-    public UserDetailsService usuariosDePrueba(PasswordEncoder encoder) {
-        var usuario = User.withUsername("prueba")
-                .password(encoder.encode("123"))
-                .roles("PRUEBA")
+    public UserDetailsService usuariosDePrueba(PasswordEncoder encoder,
+            @Value("${senadi.login.planificacion.password}") String clavePlanificacion,
+            @Value("${senadi.login.financiero.password}") String claveFinanciero) {
+        if (clavePlanificacion.isBlank() || claveFinanciero.isBlank()) {
+            throw new IllegalArgumentException("Configura las contraseñas de ambos usuarios en application-local.properties.");
+        }
+        var planificacion = User.withUsername("planificacion")
+                .password(encoder.encode(clavePlanificacion))
+                .roles("PLANIFICACION")
                 .build();
-
-        return new InMemoryUserDetailsManager(usuario);
+        var financiero = User.withUsername("financiero")
+                .password(encoder.encode(claveFinanciero))
+                .roles("FINANCIERO")
+                .build();
+        return new InMemoryUserDetailsManager(planificacion, financiero);
     }
 
     @Bean
@@ -39,7 +49,9 @@ public class logincontrol {
                     "/css/**",
                     "/img/**"
                 ).permitAll()
-                .anyRequest().authenticated()
+                .requestMatchers(HttpMethod.POST, "/importaciones").hasRole("PLANIFICACION")
+                .requestMatchers(HttpMethod.GET, "/", "/importaciones/*").hasAnyRole("PLANIFICACION", "FINANCIERO")
+                .anyRequest().denyAll()
             )
             .formLogin(login -> login
                 .loginPage("/login")
