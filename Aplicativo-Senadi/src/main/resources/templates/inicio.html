@@ -1,62 +1,259 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <title>SENADI · Matriz POA</title>
-    <link rel="stylesheet" th:href="@{/estilos.css}">
+
+    <link rel="stylesheet"
+          th:href="@{/estilos.css(v=20261116completa)}">
 </head>
+
 <body>
 <main>
+
+    <!-- ENCABEZADO -->
     <header>
-        <span class="marca">SENADI / GESTIÓN DE DATOS</span>
+        <span class="marca">GESTIÓN DE DATOS</span>
+
         <div class="sesion">
-            <div class="identidad">
-                <strong th:text="${usuarioActual}"></strong>
-                <span class="etiqueta" th:text="${rolActual}"></span>
-            </div>
+            <strong th:text="${usuarioActual}"></strong>
+
+            <span class="etiqueta"
+                  th:text="${rolActual}"></span>
+
             <form th:action="@{/logout}" method="post">
-                <button class="boton-secundario" type="submit">Cerrar sesión</button>
+                <button type="submit"
+                        class="boton-secundario">
+                    Cerrar sesión
+                </button>
             </form>
         </div>
     </header>
-    <h1>Matriz POA</h1>
-    <p class="subtitulo" th:if="${puedeImportar}">Publica la matriz para que el departamento Financiero pueda consultarla.</p>
-    <p class="subtitulo" th:unless="${puedeImportar}">Consulta la matriz publicada por el departamento de Planificación.</p>
-    <p class="ok" th:if="${mensaje}" th:text="${mensaje}" role="status"></p>
-    <p class="error" th:if="${error}" th:text="${error}" role="alert"></p>
 
-    <section class="tarjeta" th:if="${puedeImportar}">
-        <h2>Subir matriz POA</h2>
-        <p>La nueva matriz será la vigente para ambos departamentos.</p>
-        <form method="post" th:action="@{/importaciones}" enctype="multipart/form-data">
+    <!-- PRESENTACIÓN -->
+    <h1>Matriz POA</h1>
+
+    <p class="subtitulo">
+        Consulta la matriz completa y combina filtros por columna.
+    </p>
+
+    <!-- MENSAJES -->
+    <p class="ok"
+       th:if="${mensaje}"
+       th:text="${mensaje}"
+       role="status"></p>
+
+    <p class="error"
+       th:if="${error}"
+       th:text="${error}"
+       role="alert"></p>
+
+    <!-- IMPORTACIÓN: SOLO PLANIFICACIÓN -->
+    <section class="tarjeta"
+             th:if="${puedeImportar}">
+
+        <h2>Publicar matriz POA</h2>
+
+        <form th:action="@{/importaciones}"
+              method="post"
+              enctype="multipart/form-data">
+
             <label for="archivo">Archivo Excel</label>
-            <input id="archivo" name="archivo" type="file" accept=".xlsx,.xls" required aria-describedby="limites-archivo">
-            <p id="limites-archivo" class="nota">Por ahora, usa la primera hoja con encabezados en la fila 1, sin fórmulas ni celdas combinadas. Hasta 10 MB, 10 000 filas y 100 columnas.</p>
-            <button type="submit">Subir matriz POA</button>
+
+            <input id="archivo"
+                   name="archivo"
+                   type="file"
+                   accept=".xlsx,.xls"
+                   aria-describedby="ayuda-archivo"
+                   required>
+
+            <p id="ayuda-archivo" class="nota">
+                Usa la plantilla POA con encabezados en la fila 3.
+                Se importan las columnas visibles.
+                Las combinaciones de los títulos están permitidas.
+                Recalcula y guarda el Excel antes de subirlo.
+                Tamaño máximo: 10 MB.
+            </p>
+
+            <button type="submit">
+                Subir matriz POA
+            </button>
+
         </form>
     </section>
 
-    <section class="tarjeta" th:if="${lote == null}">
+    <!-- SIN MATRIZ PUBLICADA -->
+    <section class="tarjeta"
+             th:if="${lote == null}">
+
         <h2>Matriz disponible</h2>
-        <p role="status">No se ha subido ninguna matriz POA.</p>
+
+        <p role="status">
+            No se ha subido ninguna matriz POA.
+        </p>
+
     </section>
-    <section class="tarjeta" th:if="${lote != null}">
+
+    <!-- MATRIZ COMPLETA -->
+    <section class="tarjeta"
+             th:if="${lote != null}">
+
         <h2 th:text="${lote.archivo}"></h2>
-        <p>Hoja: <strong th:text="${lote.hoja}"></strong> · <span th:text="${lote.filas}"></span> filas · Subida por <span th:text="${lote.subido_por}"></span> · <span th:text="${lote.creado}"></span></p>
-        <div class="tabla" tabindex="0" role="region" aria-label="Datos de la matriz POA">
-            <table>
-                <thead><tr><th scope="col" th:each="columna : ${lote.encabezados}" th:text="${columna}"></th></tr></thead>
-                <tbody><tr th:each="fila : ${lote.datos}"><td th:each="celda : ${fila}" th:text="${celda}"></td></tr></tbody>
-            </table>
-        </div>
-        <nav class="paginacion" aria-label="Páginas de la matriz" th:if="${lote.paginas > 1}">
-            <a th:if="${lote.pagina > 1}" th:href="@{/(pagina=${lote.pagina - 1})}">Anterior</a>
-            <span>Página <span th:text="${lote.pagina}"></span> de <span th:text="${lote.paginas}"></span></span>
-            <a th:if="${lote.pagina < lote.paginas}" th:href="@{/(pagina=${lote.pagina + 1})}">Siguiente</a>
-        </nav>
+
+        <p>
+            Hoja:
+            <strong th:text="${lote.hoja}"></strong>
+
+            ·
+            <span th:text="${lote.filas}"></span>
+            filas almacenadas
+
+            · Publicada por
+            <strong th:text="${lote.subido_por}"></strong>
+        </p>
+
+        <!-- CONSULTA: DISPONIBLE PARA AMBOS ROLES -->
+        <form th:action="@{/}" method="get">
+
+            <div class="acciones-tabla">
+
+                <button type="submit">
+                    Aplicar filtros
+                </button>
+
+                <a class="boton" th:href="@{/}">
+                    Limpiar filtros
+                </a>
+
+                <span role="status">
+                    <strong th:text="${lote.filasFiltradas}"></strong>
+                    resultados de
+                    <strong th:text="${lote.filas}"></strong>
+                    filas
+                </span>
+
+            </div>
+
+            <p class="nota" id="ayuda-tabla">
+                Escribe debajo de cada encabezado y pulsa
+                Aplicar filtros o Enter.
+                Puedes combinar varias columnas.
+                Todas las filas coincidentes aparecen en esta vista.
+                Desplázate horizontalmente para ver más columnas.
+            </p>
+
+            <div class="tabla"
+                 tabindex="0"
+                 role="region"
+                 aria-label="Matriz POA completa"
+                 aria-describedby="ayuda-tabla">
+
+                <table>
+
+                    <thead>
+                    <tr>
+                        <th scope="col"
+                            th:each="encabezado, estado : ${lote.encabezados}">
+
+                            <label class="titulo-columna"
+                                   th:for="${'f' + estado.index}"
+                                   th:text="${encabezado}">
+                            </label>
+
+                            <input class="filtro-columna"
+                                   type="search"
+                                   th:id="${'f' + estado.index}"
+                                   th:name="${'f' + estado.index}"
+                                   th:value="${filtrosMatriz[estado.index]}"
+                                   th:aria-label="${'Filtrar por ' + encabezado}"
+                                   placeholder="Filtrar…"
+                                   maxlength="150">
+
+                        </th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+
+                    <tr th:each="fila : ${lote.datos}">
+
+                        <td th:each="encabezado, estado : ${lote.encabezados}"
+                            th:text="${estado.index < #lists.size(fila) ? fila[estado.index] : ''}">
+                        </td>
+
+                    </tr>
+
+                    <tr th:if="${lote.filasFiltradas == 0}">
+
+                        <td th:colspan="${#lists.size(lote.encabezados)}">
+                            No hay filas que coincidan con los filtros.
+                        </td>
+
+                    </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            <div class="acciones-tabla">
+
+                <button type="submit">
+                    Aplicar filtros
+                </button>
+
+                <a class="boton" th:href="@{/}">
+                    Limpiar filtros
+                </a>
+
+                <span class="nota">
+                    Los filtros solo cambian la consulta.
+                    No modifican los datos guardados.
+                </span>
+
+            </div>
+
+        </form>
+
     </section>
-    <footer>Servicio Nacional de Derechos Intelectuales</footer>
+
+    <!-- REINICIO: SOLO PLANIFICACIÓN -->
+    <section class="tarjeta"
+             th:if="${puedeImportar and lote != null}">
+
+        <h2>Resetear matrices POA</h2>
+
+        <p>
+            Retira de la vista las matrices POA publicadas
+            hasta la actual. Los datos se conservan como respaldo.
+            Después puedes publicar una matriz nueva.
+        </p>
+
+        <form th:action="@{/matrices/resetear}"
+              method="post"
+              onsubmit="return confirm('¿Retirar las matrices POA publicadas? Dejarán de aparecer para ambos departamentos. Los datos se conservarán como respaldo.');">
+
+            <input type="hidden"
+                   name="matrizId"
+                   th:value="${lote.id}">
+
+            <button type="submit"
+                    class="boton-peligro">
+                Resetear matrices POA
+            </button>
+
+        </form>
+
+    </section>
+
+    <footer>
+        Servicio Nacional de Derechos Intelectuales
+    </footer>
+
 </main>
 </body>
 </html>

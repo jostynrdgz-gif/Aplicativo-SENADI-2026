@@ -41,14 +41,46 @@ class RolesPoaTest {
         jdbc.update("DELETE FROM excel_importacion");
     }
     MockMultipartFile excel() throws Exception {
-        try (var w = new XSSFWorkbook(); var out = new ByteArrayOutputStream()) {
-            var s = w.createSheet("POA");
-            s.createRow(0).createCell(0).setCellValue("Actividad");
-            s.createRow(1).createCell(0).setCellValue("Compra <script>alert(1)</script>");
-            w.write(out);
-            return new MockMultipartFile("archivo", "poa.xlsx", "application/octet-stream", out.toByteArray());
-        }
+
+    try (
+        var libro = new XSSFWorkbook();
+        var salida = new ByteArrayOutputStream()
+    ) {
+        var hoja = libro.createSheet("POA");
+
+        // Título en la fila 1.
+        hoja.createRow(0)
+            .createCell(0)
+            .setCellValue("PLAN OPERATIVO ANUAL");
+
+        // Encabezados en la fila 3.
+        var encabezados = hoja.createRow(2);
+
+        encabezados.createCell(0)
+            .setCellValue("ACTIVIDAD POA");
+
+        encabezados.createCell(1)
+            .setCellValue("CODIGO UNICO INTERNO");
+
+        // Datos en la fila 4.
+        var fila = hoja.createRow(3);
+
+        fila.createCell(0)
+            .setCellValue("Compra <script>alert(1)</script>");
+
+        fila.createCell(1)
+            .setCellValue("DA_01");
+
+        libro.write(salida);
+
+        return new MockMultipartFile(
+            "archivo",
+            "poa.xlsx",
+            "application/octet-stream",
+            salida.toByteArray()
+        );
     }
+}
     @Test void anonimoDebeIniciarSesion() throws Exception {
         mvc.perform(get("/")).andExpect(status().is3xxRedirection()).andExpect(redirectedUrlPattern("**/login"));
     }
@@ -62,7 +94,18 @@ class RolesPoaTest {
     }
     @Test void financieroVeMensajeSinPoaYNoTieneFormulario() throws Exception {
         // Una importación genérica de prueba no constituye una publicación POA.
-        service.importar(excel());
+        jdbc.update(
+    """
+    INSERT INTO excel_importacion
+        (archivo, hoja, encabezados, filas, tipo)
+    VALUES (?, ?, ?, ?, ?)
+    """,
+    "generico.xlsx",
+    "Datos",
+    "[]",
+    0,
+    "GENERICO"
+);
         mvc.perform(get("/").with(user("financiero").roles("FINANCIERO")))
             .andExpect(status().isOk())
             .andExpect(content().string(containsString("No se ha subido ninguna matriz POA.")))

@@ -1,9 +1,9 @@
 package ec.senadi;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpMethod;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -21,53 +21,98 @@ public class logincontrol {
     }
 
     @Bean
-    public UserDetailsService usuariosDePrueba(PasswordEncoder encoder,
-            @Value("${senadi.login.planificacion.password}") String clavePlanificacion,
-            @Value("${senadi.login.financiero.password}") String claveFinanciero) {
-        if (clavePlanificacion.isBlank() || claveFinanciero.isBlank()) {
-            throw new IllegalArgumentException("Configura las contraseñas de ambos usuarios en application-local.properties.");
+    public UserDetailsService usuariosDePrueba(
+            PasswordEncoder encoder,
+            @Value("${senadi.login.planificacion.password}")
+            String clavePlanificacion,
+            @Value("${senadi.login.financiero.password}")
+            String claveFinanciero
+    ) {
+
+        if (clavePlanificacion.isBlank()
+                || claveFinanciero.isBlank()) {
+
+            throw new IllegalArgumentException(
+                "Configura las contraseñas de Planificación "
+                + "y Financiero en application-local.properties."
+            );
         }
+
         var planificacion = User.withUsername("planificacion")
-                .password(encoder.encode(clavePlanificacion))
-                .roles("PLANIFICACION")
-                .build();
+            .password(encoder.encode(clavePlanificacion))
+            .roles("PLANIFICACION")
+            .build();
+
         var financiero = User.withUsername("financiero")
-                .password(encoder.encode(claveFinanciero))
-                .roles("FINANCIERO")
-                .build();
-        return new InMemoryUserDetailsManager(planificacion, financiero);
+            .password(encoder.encode(claveFinanciero))
+            .roles("FINANCIERO")
+            .build();
+
+        return new InMemoryUserDetailsManager(
+            planificacion,
+            financiero
+        );
     }
 
     @Bean
-    public SecurityFilterChain seguridad(HttpSecurity http) throws Exception {
+    public SecurityFilterChain seguridad(
+            HttpSecurity http
+    ) throws Exception {
+
         http
             .authorizeHttpRequests(permisos -> permisos
+
+                // Páginas y estilos accesibles antes del login.
                 .requestMatchers(
                     "/login",
                     "/error",
                     "/estilos.css",
                     "/css/**",
-                    "/img/**"
+                    "/img/**",
+                    "/favicon.ico"
                 ).permitAll()
-                .requestMatchers(HttpMethod.POST, "/importaciones").hasRole("PLANIFICACION")
-                .requestMatchers(HttpMethod.GET, "/", "/importaciones/*").hasAnyRole("PLANIFICACION", "FINANCIERO")
+
+                // Solo Planificación puede importar y resetear.
+                .requestMatchers(
+                    HttpMethod.POST,
+                    "/importaciones",
+                    "/matrices/resetear"
+                ).hasRole("PLANIFICACION")
+
+                // Ambos departamentos pueden consultar y filtrar.
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/",
+                    "/importaciones/*"
+                ).hasAnyRole(
+                    "PLANIFICACION",
+                    "FINANCIERO"
+                )
+
+                // Bloquea las demás rutas.
                 .anyRequest().denyAll()
             )
+
             .formLogin(login -> login
                 .loginPage("/login")
                 .loginProcessingUrl("/login")
+                .usernameParameter("username")
+                .passwordParameter("password")
                 .defaultSuccessUrl("/", true)
                 .failureUrl("/login?error")
                 .permitAll()
             )
+
             .logout(salida -> salida
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout")
                 .invalidateHttpSession(true)
+                .clearAuthentication(true)
                 .deleteCookies("JSESSIONID")
                 .permitAll()
             );
 
+        // Se mantiene activa la protección CSRF.
         return http.build();
     }
 }
