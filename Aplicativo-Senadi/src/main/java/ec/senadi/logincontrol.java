@@ -68,6 +68,7 @@ public class logincontrol {
                     "/error",
                     "/estilos.css",
                     "/css/**",
+                    "/js/**",
                     "/img/**",
                     "/favicon.ico"
                 ).permitAll()

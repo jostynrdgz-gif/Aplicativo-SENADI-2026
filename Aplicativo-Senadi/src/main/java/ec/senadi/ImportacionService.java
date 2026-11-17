@@ -471,4 +471,125 @@ public class ImportacionService {
 
         return "columna-dato";
     }
+    @SuppressWarnings("unchecked")
+public Map<String, Object> consultarConCombos(
+        long id,
+        Map<Integer, String> textos,
+        Map<Integer, String> selecciones
+) throws Exception {
+
+    // Obtiene la matriz completa, sin filtros ni paginación.
+    Map<String, Object> matriz = detalle(id);
+
+    List<String> encabezados =
+        (List<String>) matriz.get("encabezados");
+
+    List<List<String>> filas =
+        (List<List<String>>) matriz.get("datos");
+
+    for (var campo : textos.entrySet()) {
+        if (campo.getKey() < 0
+                || campo.getKey() >= encabezados.size()
+                || campo.getValue() == null
+                || campo.getValue().length() > 150) {
+            throw new IllegalArgumentException(
+                "Filtro de texto inválido."
+            );
+        }
+    }
+
+    for (var campo : selecciones.entrySet()) {
+        if (campo.getKey() < 0
+                || campo.getKey() >= encabezados.size()
+                || campo.getValue() == null
+                || campo.getValue().length() > 10000) {
+            throw new IllegalArgumentException(
+                "Selección de columna inválida."
+            );
+        }
+    }
+
+    // Las opciones se generan con todos los datos de la matriz.
+    Map<Integer, List<String>> opciones = new LinkedHashMap<>();
+
+    for (int columna = 0;
+            columna < encabezados.size();
+            columna++) {
+
+        Set<String> valoresUnicos = new TreeSet<>();
+
+        for (List<String> fila : filas) {
+            String valor = valorEn(fila, columna).strip();
+
+            if (!valor.isEmpty()) {
+                valoresUnicos.add(valor);
+            }
+        }
+
+        opciones.put(
+            columna,
+            new ArrayList<>(valoresUnicos)
+        );
+    }
+
+    List<List<String>> resultados = new ArrayList<>();
+
+    for (List<String> fila : filas) {
+
+        boolean coincide = true;
+
+        // La búsqueda escrita encuentra coincidencias parciales.
+        for (var campo : textos.entrySet()) {
+
+            String valor = normalizarBusqueda(
+                valorEn(fila, campo.getKey())
+            );
+
+            String textoBuscado = normalizarBusqueda(
+                campo.getValue()
+            );
+
+            if (!valor.contains(textoBuscado)) {
+                coincide = false;
+                break;
+            }
+        }
+
+        // La opción elegida debe coincidir exactamente.
+        if (coincide) {
+
+            for (var campo : selecciones.entrySet()) {
+
+                String valor = valorEn(
+                    fila,
+                    campo.getKey()
+                ).strip();
+
+                if (!valor.equals(campo.getValue().strip())) {
+                    coincide = false;
+                    break;
+                }
+            }
+        }
+
+        if (coincide) {
+            resultados.add(fila);
+        }
+    }
+
+    matriz.put("datos", resultados);
+    matriz.put("filasFiltradas", resultados.size());
+    matriz.put("opcionesColumnas", opciones);
+
+    matriz.put(
+        "primerResultado",
+        resultados.isEmpty() ? 0 : 1
+    );
+
+    matriz.put("ultimoResultado", resultados.size());
+    matriz.put("pagina", 1);
+    matriz.put("paginas", 1);
+
+    return matriz;
+}
 }

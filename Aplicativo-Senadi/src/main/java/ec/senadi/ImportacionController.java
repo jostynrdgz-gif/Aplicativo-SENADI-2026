@@ -52,79 +52,80 @@ public class ImportacionController {
 
     @GetMapping("/")
     public String inicio(
-            @RequestParam(defaultValue = "1") int pagina,
-            @RequestParam(defaultValue = "-1") int columna,
-            @RequestParam(defaultValue = "") String filtro,
-            @RequestParam Map<String, String> parametros,
-            Model model
+        @RequestParam Map<String, String> parametros,
+        Model model
     ) throws Exception {
 
-        Long id = service.idPoaVigente();
+    Map<Integer, String> textos = new LinkedHashMap<>();
+    Map<Integer, String> selecciones = new LinkedHashMap<>();
 
-        Map<Integer, String> filtrosColumna =
-            new LinkedHashMap<>();
+    try {
+        for (var parametro : parametros.entrySet()) {
 
-        try {
-            for (var campo : parametros.entrySet()) {
+            String nombre = parametro.getKey();
+            String valor = parametro.getValue();
 
-                // Acepta los nombres de filtros de ambas vistas.
-                if (campo.getKey().matches("[cf][0-9]+")) {
+            // f0, f1...: texto.
+            // o0, o1...: opción seleccionada.
+            // También acepta c0, c1... de la vista anterior.
+            if (nombre.matches("[fco][0-9]+")) {
 
-                    int indice = Integer.parseInt(
-                        campo.getKey().substring(1)
+                int indice = Integer.parseInt(
+                    nombre.substring(1)
+                );
+
+                boolean esSeleccion = nombre.startsWith("o");
+                int longitudMaxima = esSeleccion ? 10000 : 150;
+
+                if (indice > 99
+                        || valor.length() > longitudMaxima) {
+                    throw new IllegalArgumentException(
+                        "Filtro inválido."
                     );
+                }
 
-                    String valor = campo.getValue();
+                if (!valor.isBlank()) {
 
-                    if (indice > 99 || valor.length() > 150) {
-                        throw new IllegalArgumentException(
-                            "Filtro inválido."
-                        );
-                    }
-
-                    if (!valor.isBlank()) {
-                        filtrosColumna.put(indice, valor.strip());
+                    if (esSeleccion) {
+                        selecciones.put(indice, valor.strip());
+                    } else {
+                        textos.put(indice, valor.strip());
                     }
                 }
             }
-
-            model.addAttribute(
-                "lote",
-                id == null
-                    ? null
-                    : service.detalle(
-                        id,
-                        pagina,
-                        columna,
-                        filtro,
-                        filtrosColumna
-                    )
-            );
-
-        } catch (IllegalArgumentException e) {
-
-            throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                "Revisa los filtros ingresados."
-            );
         }
 
-        model.addAttribute("columnaFiltro", columna);
-        model.addAttribute("filtro", filtro);
-
-        // Compatibilidad con el inicio.html escrito manualmente.
-        model.addAttribute("filtrosMatriz", filtrosColumna);
-
-        // Compatibilidad con la otra versión de la vista.
-        model.addAttribute("filtrosColumna", filtrosColumna);
+        Long id = service.idPoaVigente();
 
         model.addAttribute(
-            "cantidadFiltros",
-            filtrosColumna.size() + (filtro.isBlank() ? 0 : 1)
+            "lote",
+            id == null
+                ? null
+                : service.consultarConCombos(
+                    id,
+                    textos,
+                    selecciones
+                )
         );
 
-        return "inicio";
+    } catch (IllegalArgumentException e) {
+
+        throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
+            "Revisa los filtros ingresados."
+        );
     }
+
+    model.addAttribute("filtrosMatriz", textos);
+    model.addAttribute("filtrosSeleccion", selecciones);
+
+    model.addAttribute(
+        "cantidadFiltros",
+        textos.size() + selecciones.size()
+    );
+
+    return "inicio";
+}
 
     @PostMapping("/importaciones")
     public String importar(

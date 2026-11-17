@@ -3,18 +3,22 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
 
     <title>SENADI · Matriz POA</title>
 
     <link rel="stylesheet"
-          th:href="@{/estilos.css(v=20261116completa)}">
+          th:href="@{/estilos.css(v=20261117combos)}">
+
+    <script defer
+            th:src="@{/js/matriz-poa.js(v=20261117combos)}">
+    </script>
 </head>
 
 <body>
 <main>
 
-    <!-- ENCABEZADO -->
     <header>
         <span class="marca">GESTIÓN DE DATOS</span>
 
@@ -33,14 +37,12 @@
         </div>
     </header>
 
-    <!-- PRESENTACIÓN -->
     <h1>Matriz POA</h1>
 
     <p class="subtitulo">
-        Consulta la matriz completa y combina filtros por columna.
+        Consulta la matriz completa y filtra sus columnas.
     </p>
 
-    <!-- MENSAJES -->
     <p class="ok"
        th:if="${mensaje}"
        th:text="${mensaje}"
@@ -51,45 +53,62 @@
        th:text="${error}"
        role="alert"></p>
 
-    <!-- IMPORTACIÓN: SOLO PLANIFICACIÓN -->
-    <section class="tarjeta"
-             th:if="${puedeImportar}">
+    <!-- SOLO PLANIFICACIÓN -->
+    <section class="tarjeta" th:if="${puedeImportar}">
+    <h2>Publicar matriz POA</h2>
 
-        <h2>Publicar matriz POA</h2>
+    <!-- Formulario independiente para resetear -->
+    <form id="form-resetear-poa"
+          th:if="${lote != null}"
+          th:action="@{/matrices/resetear}"
+          method="post"
+          onsubmit="return confirm('¿Retirar las matrices POA publicadas? Los datos se conservarán como respaldo.');">
 
-        <form th:action="@{/importaciones}"
-              method="post"
-              enctype="multipart/form-data">
+        <input type="hidden"
+               name="matrizId"
+               th:value="${lote.id}">
+    </form>
 
-            <label for="archivo">Archivo Excel</label>
+    <!-- Formulario para subir el Excel -->
+    <form th:action="@{/importaciones}"
+          method="post"
+          enctype="multipart/form-data">
 
-            <input id="archivo"
-                   name="archivo"
-                   type="file"
-                   accept=".xlsx,.xls"
-                   aria-describedby="ayuda-archivo"
-                   required>
+        <label for="archivo">Archivo Excel</label>
 
-            <p id="ayuda-archivo" class="nota">
-                Usa la plantilla POA con encabezados en la fila 3.
-                Se importan las columnas visibles.
-                Las combinaciones de los títulos están permitidas.
-                Recalcula y guarda el Excel antes de subirlo.
-                Tamaño máximo: 10 MB.
-            </p>
+        <input id="archivo"
+               name="archivo"
+               type="file"
+               accept=".xlsx,.xls"
+               required>
+
+        <p class="nota">
+            Usa la plantilla POA con encabezados en la fila 3.
+            Se importan las columnas visibles.
+            Recalcula y guarda el Excel antes de subirlo.
+            Tamaño máximo: 10 MB.
+        </p>
+
+        <div class="acciones-publicacion">
 
             <button type="submit">
                 Subir matriz POA
             </button>
 
-        </form>
-    </section>
+            <button th:if="${lote != null}"
+                    type="submit"
+                    form="form-resetear-poa"
+                    class="boton-peligro">
+                Resetear matrices POA
+            </button>
 
-    <!-- SIN MATRIZ PUBLICADA -->
+        </div>
+
+    </form>
+</section>
+
     <section class="tarjeta"
              th:if="${lote == null}">
-
-        <h2>Matriz disponible</h2>
 
         <p role="status">
             No se ha subido ninguna matriz POA.
@@ -97,7 +116,7 @@
 
     </section>
 
-    <!-- MATRIZ COMPLETA -->
+    <!-- MATRIZ Y FILTROS -->
     <section class="tarjeta"
              th:if="${lote != null}">
 
@@ -115,7 +134,6 @@
             <strong th:text="${lote.subido_por}"></strong>
         </p>
 
-        <!-- CONSULTA: DISPONIBLE PARA AMBOS ROLES -->
         <form th:action="@{/}" method="get">
 
             <div class="acciones-tabla">
@@ -137,22 +155,33 @@
 
             </div>
 
-            <p class="nota" id="ayuda-tabla">
-                Escribe debajo de cada encabezado y pulsa
-                Aplicar filtros o Enter.
-                Puedes combinar varias columnas.
-                Todas las filas coincidentes aparecen en esta vista.
-                Desplázate horizontalmente para ver más columnas.
+            <p class="nota" id="ayuda-matriz">
+                Escribe en la caja pequeña o elige una opción.
+                Puedes combinar filtros de distintas columnas.
+                Después pulsa Aplicar filtros o Enter.
+                Usa la barra superior para desplazarte horizontalmente.
             </p>
 
-            <div class="tabla"
+            <!-- BARRA HORIZONTAL SUPERIOR -->
+            <div id="desplazamiento-superior"
+                 class="desplazamiento-superior"
+                 tabindex="0"
+                 role="region"
+                 aria-label="Desplazamiento horizontal de la matriz"
+                 aria-controls="tabla-matriz">
+
+                <div id="contenido-desplazamiento"></div>
+
+            </div>
+
+            <div id="tabla-matriz"
+                 class="tabla"
                  tabindex="0"
                  role="region"
                  aria-label="Matriz POA completa"
-                 aria-describedby="ayuda-tabla">
+                 aria-describedby="ayuda-matriz">
 
                 <table>
-
                     <thead>
                     <tr>
                         <th scope="col"
@@ -163,14 +192,41 @@
                                    th:text="${encabezado}">
                             </label>
 
-                            <input class="filtro-columna"
-                                   type="search"
-                                   th:id="${'f' + estado.index}"
-                                   th:name="${'f' + estado.index}"
-                                   th:value="${filtrosMatriz[estado.index]}"
-                                   th:aria-label="${'Filtrar por ' + encabezado}"
-                                   placeholder="Filtrar…"
-                                   maxlength="150">
+                            <div class="filtros-columna">
+
+                                <!-- CAJA PEQUEÑA A LA IZQUIERDA -->
+                                <input class="filtro-columna"
+                                       type="search"
+                                       th:id="${'f' + estado.index}"
+                                       th:name="${'f' + estado.index}"
+                                       th:value="${filtrosMatriz[estado.index]}"
+                                       th:attr="data-columna=${estado.index}"
+                                       th:aria-label="${'Escribir filtro para ' + encabezado}"
+                                       placeholder="Buscar…"
+                                       maxlength="150">
+
+                                <!-- COMBOBOX A LA DERECHA -->
+                                <select class="combo-columna"
+                                        th:id="${'o' + estado.index}"
+                                        th:name="${'o' + estado.index}"
+                                        th:attr="data-columna=${estado.index}"
+                                        th:aria-label="${'Elegir valor de ' + encabezado}">
+
+                                    <option value="">
+                                        Todas las opciones
+                                    </option>
+
+                                    <option
+                                        th:each="valor : ${lote.opcionesColumnas[estado.index]}"
+                                        th:value="${valor}"
+                                        th:text="${#strings.abbreviate(valor, 80)}"
+                                        th:title="${valor}"
+                                        th:selected="${filtrosSeleccion[estado.index] == valor}">
+                                    </option>
+
+                                </select>
+
+                            </div>
 
                         </th>
                     </tr>
@@ -195,7 +251,6 @@
                     </tr>
 
                     </tbody>
-
                 </table>
 
             </div>
@@ -211,45 +266,13 @@
                 </a>
 
                 <span class="nota">
-                    Los filtros solo cambian la consulta.
-                    No modifican los datos guardados.
+                    Los filtros no modifican los datos guardados.
                 </span>
 
             </div>
 
         </form>
-
     </section>
-
-    <!-- REINICIO: SOLO PLANIFICACIÓN -->
-    <section class="tarjeta"
-             th:if="${puedeImportar and lote != null}">
-
-        <h2>Resetear matrices POA</h2>
-
-        <p>
-            Retira de la vista las matrices POA publicadas
-            hasta la actual. Los datos se conservan como respaldo.
-            Después puedes publicar una matriz nueva.
-        </p>
-
-        <form th:action="@{/matrices/resetear}"
-              method="post"
-              onsubmit="return confirm('¿Retirar las matrices POA publicadas? Dejarán de aparecer para ambos departamentos. Los datos se conservarán como respaldo.');">
-
-            <input type="hidden"
-                   name="matrizId"
-                   th:value="${lote.id}">
-
-            <button type="submit"
-                    class="boton-peligro">
-                Resetear matrices POA
-            </button>
-
-        </form>
-
-    </section>
-
     <footer>
         Servicio Nacional de Derechos Intelectuales
     </footer>
