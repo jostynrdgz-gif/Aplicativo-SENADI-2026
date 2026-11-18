@@ -50,6 +50,14 @@ public class ImportacionService {
         return guardar(archivo, "POA", usuario);
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    public long importarEsigef(
+            MultipartFile archivo,
+            String usuario
+    ) throws Exception {
+        return guardar(archivo, "ESIGEF", usuario);
+    }
+
     private long guardar(
             MultipartFile archivo,
             String tipo,
@@ -76,12 +84,11 @@ public class ImportacionService {
         ExcelReader.Tabla tabla;
 
         try (var input = archivo.getInputStream()) {
-
-            if ("POA".equals(tipo)) {
-                tabla = new PoaExcelReader().leer(input);
-            } else {
-                tabla = reader.leer(input);
-            }
+            tabla = switch (tipo) {
+                case "POA" -> new PoaExcelReader().leer(input);
+                case "ESIGEF" -> validarEsigef(new EsigefExcelReader().leer(input));
+                default -> reader.leer(input);
+            };
         }
 
         String encabezados = json.writeValueAsString(
@@ -146,6 +153,57 @@ public class ImportacionService {
         );
 
         return id;
+    }
+
+    private ExcelReader.Tabla validarEsigef(ExcelReader.Tabla reporte) throws Exception {
+        Long idPoa = idPoaVigente();
+        if (idPoa == null) {
+            return CruceEsigefPoa.validar(reporte, null, List.of(), List.of());
+        }
+
+        var tipoLista = new TypeReference<List<String>>() {};
+        String encabezadosJson = jdbc.queryForObject(
+                "SELECT encabezados FROM excel_importacion WHERE id = ?", String.class, idPoa);
+        List<String> encabezados = json.readValue(encabezadosJson, tipoLista);
+        List<List<String>> filas = new ArrayList<>();
+        for (String valores : jdbc.queryForList(
+                "SELECT valores FROM excel_fila WHERE importacion_id = ?", String.class, idPoa)) {
+            filas.add(json.readValue(valores, tipoLista));
+        }
+        return CruceEsigefPoa.validar(reporte, idPoa, encabezados, filas);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<CalculoDevengado.Clave, java.math.BigDecimal> calcularDevengado(
+            long idEsigef, String columnaImporte
+    ) throws Exception {
+        Long idPoa = idPoaVigente();
+        if (idPoa == null) {
+            throw new IllegalArgumentException("Publica una matriz POA antes de calcular el devengado.");
+        }
+        var reportes = jdbc.queryForList(
+                "SELECT encabezados FROM excel_importacion WHERE id = ? AND tipo = 'ESIGEF'",
+                String.class, idEsigef);
+        if (reportes.isEmpty()) {
+            throw new IllegalArgumentException("No existe ese reporte eSIGEF.");
+        }
+        var tipoLista = new TypeReference<List<String>>() {};
+        List<String> encabezados = json.readValue(reportes.getFirst(), tipoLista);
+        List<ExcelReader.Fila> filas = new ArrayList<>();
+        var registros = jdbc.query(
+                """
+                SELECT numero_fila, valores FROM excel_fila
+                WHERE importacion_id = ?
+                ORDER BY numero_fila, id
+                """,
+                (rs, n) -> Map.entry(rs.getInt("numero_fila"), rs.getString("valores")),
+                idEsigef
+        );
+        for (var registro : registros) {
+            filas.add(new ExcelReader.Fila(registro.getKey(), json.readValue(registro.getValue(), tipoLista)));
+        }
+        return CalculoDevengado.sumar(
+                new ExcelReader.Tabla("eSIGEF", encabezados, filas), idPoa, columnaImporte);
     }
 
     public Long idPoaVigente() {

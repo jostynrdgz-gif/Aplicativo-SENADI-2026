@@ -61,6 +61,9 @@ class RolesPoaTest {
 
         encabezados.createCell(1)
             .setCellValue("CODIGO UNICO INTERNO");
+        int columnaItem = encabezados.getLastCellNum();
+        encabezados.createCell(columnaItem)
+                .setCellValue("ÍTEM PRESUPUESTARIO");
 
         // Datos en la fila 4.
         var fila = hoja.createRow(3);

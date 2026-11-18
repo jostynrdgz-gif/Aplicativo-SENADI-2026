@@ -106,6 +106,19 @@
 
     </form>
 </section>
+<section class="tarjeta" th:if="${puedeImportar}">
+    <h2>Importar reporte eSIGEF</h2>
+
+    <form th:action="@{/importaciones/esigef}"
+          method="post"
+          enctype="multipart/form-data">
+        <label for="archivo-esigef">Reporte eSIGEF en Excel</label>
+        <input id="archivo-esigef" name="archivo"
+               type="file" accept=".xls,.xlsx" required>
+
+        <button type="submit">Subir reporte eSIGEF</button>
+    </form>
+</section>
 
     <section class="tarjeta"
              th:if="${lote == null}">

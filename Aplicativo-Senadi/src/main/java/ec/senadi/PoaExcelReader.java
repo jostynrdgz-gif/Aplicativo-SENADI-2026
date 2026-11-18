@@ -26,7 +26,6 @@ public class PoaExcelReader {
             for (Sheet candidata : libro) {
 
                 Row encabezado = candidata.getRow(2);
-
                 if (encabezado == null) {
                     continue;
                 }
@@ -51,7 +50,6 @@ public class PoaExcelReader {
 
                 if (codigoEncontrado >= 0
                         && actividadEncontrada >= 0) {
-
                     if (hoja != null) {
                         throw new IllegalArgumentException(
                             "El archivo contiene varias hojas POA. "
@@ -123,6 +121,14 @@ public class PoaExcelReader {
                 encabezados.add(nombre);
             }
 
+            // El ítem presupuestario se usará para el cruce con eSIGEF.
+            if (!nombresUtilizados.contains("ITEM PRESUPUESTARIO")) {
+                throw new IllegalArgumentException(
+                    "La fila 3 debe incluir la columna visible "
+                    + "Ítem presupuestario."
+                );
+            }
+
             // Permite las combinaciones de las filas de título.
             // Evita importar datos ambiguos en celdas combinadas.
             for (var region : hoja.getMergedRegions()) {
@@ -154,7 +160,6 @@ public class PoaExcelReader {
                     numeroFila++) {
 
                 Row fila = hoja.getRow(numeroFila);
-
                 if (fila == null) {
                     continue;
                 }
@@ -204,7 +209,6 @@ public class PoaExcelReader {
                 int posicionCodigo = columnasVisibles.indexOf(
                     columnaCodigo
                 );
-
                 valores.set(posicionCodigo, codigo);
 
                 filas.add(
@@ -294,7 +298,6 @@ public class PoaExcelReader {
         }
 
         String valor = formato.formatCellValue(celda);
-
         if (valor.length() > 10000) {
             throw new IllegalArgumentException(
                 "La celda "
