@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SENADI · Consulta eSIGEF</title>
+    <link rel="stylesheet" th:href="@{/estilos.css(v=matrices)}">
+</head>
+<body>
+<main>
+    <div th:replace="~{fragmentos/matrices :: cabecera('esigef')}"></div>
+    <p th:if="${#lists.isEmpty(reportes)}" role="status">No hay reportes eSIGEF cargados.</p>
+    <section class="tarjeta" th:unless="${#lists.isEmpty(reportes)}">
+        <form th:action="@{/esigef}" method="get">
+            <label for="reporte">Reporte</label>
+            <select id="reporte" name="reporte" required>
+                <option th:each="r : ${reportes}" th:value="${r.id}"
+                        th:text="${r.archivo + ' (carga ' + r.id + ')'}"
+                        th:selected="${r.id == reporteSeleccionado}"></option>
+            </select>
+            <label for="descripcion">Descripción</label>
+            <input id="descripcion" name="descripcion" type="search" maxlength="150" th:value="${descripcion}">
+            <label for="renglon">Renglón / ítem presupuestario</label>
+            <input id="renglon" name="renglon" type="search" maxlength="150" th:value="${renglon}">
+            <label for="codigo">Código único</label>
+            <input id="codigo" name="codigo" type="search" maxlength="150" th:value="${codigo}">
+            <div class="acciones-tabla">
+                <button type="submit">Aplicar filtros</button>
+                <a class="boton" th:href="@{/esigef(reporte=${reporteSeleccionado})}">Limpiar filtros</a>
+            </div>
+        </form>
+        <p class="error" th:if="${errorConsulta}" th:text="${errorConsulta}" role="alert"></p>
+        <div th:if="${errorConsulta == null}">
+            <p th:text="${#lists.size(filas) + ' resultados'}" role="status"></p>
+            <p class="nota">El código se muestra cuando coincide con el código interno y el ítem de la POA vigente.</p>
+            <div class="tabla" tabindex="0" role="region" aria-label="Consulta de filas eSIGEF">
+                <table>
+                    <thead><tr>
+                        <th scope="col">Descripción</th>
+                        <th scope="col">Renglón / ítem presupuestario</th>
+                        <th scope="col">Código único</th>
+                    </tr></thead>
+                    <tbody>
+                        <tr th:each="fila : ${filas}">
+                            <td th:text="${fila.descripcion}"></td>
+                            <td th:text="${fila.renglon}"></td>
+                            <td th:text="${fila.codigo.isEmpty() ? '—' : fila.codigo}"></td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(filas)}">
+                            <td colspan="3">No hay filas que coincidan con los filtros.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+    <footer>Servicio Nacional de Derechos Intelectuales</footer>
+</main>
+</body>
+</html>

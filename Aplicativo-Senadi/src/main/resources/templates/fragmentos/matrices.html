@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="cabecera(pestana)">
+    <header>
+        <span class="marca">GESTIÓN DE DATOS</span>
+        <div class="sesion">
+            <strong th:text="${usuarioActual}"></strong>
+            <span class="etiqueta" th:text="${rolActual}"></span>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="boton-secundario">Cerrar sesión</button>
+            </form>
+        </div>
+    </header>
+
+    <h1>Matrices</h1>
+    <nav class="pestanas-matrices" aria-label="Matrices disponibles">
+        <a th:href="@{/}" th:attr="aria-current=${pestana == 'poa' ? 'page' : null}">POA</a>
+        <a th:href="${reporteSeleccionado == null} ? @{/esigef} : @{/esigef(reporte=${reporteSeleccionado})}"
+           th:attr="aria-current=${pestana == 'esigef' ? 'page' : null}">ESIGEF</a>
+        <a th:href="${reporteSeleccionado == null} ? @{/poa-combinada} : @{/poa-combinada(reporte=${reporteSeleccionado})}"
+           th:attr="aria-current=${pestana == 'combinada' ? 'page' : null}">POACOMBINADA</a>
+    </nav>
+
+    <p class="ok" th:if="${mensaje}" th:text="${mensaje}" role="status"></p>
+    <p class="error" th:if="${error}" th:text="${error}" role="alert"></p>
+
+    <section class="tarjeta" th:if="${puedeImportar}" aria-labelledby="titulo-carga">
+        <h2 id="titulo-carga">Subir matriz</h2>
+        <form class="carga-matriz" th:action="@{/importaciones}" method="post"
+              enctype="multipart/form-data">
+            <div>
+                <label for="tipo-matriz">Tipo de matriz</label>
+                <select id="tipo-matriz" name="tipo" required>
+                    <option value="POA" th:selected="${pestana == 'poa' or pestana == 'combinada'}">POA</option>
+                    <option value="ESIGEF" th:selected="${pestana == 'esigef'}">eSIGEF</option>
+                </select>
+            </div>
+            <div>
+                <label for="archivo">Archivo Excel</label>
+                <input id="archivo" name="archivo" type="file" accept=".xls,.xlsx"
+                       aria-describedby="ayuda-carga" required>
+            </div>
+            <button type="submit">Subir archivo</button>
+            <p class="nota" id="ayuda-carga">
+                Máximo 10 MB. Los encabezados van en la fila 3 para POA y en la fila 1 para eSIGEF.
+            </p>
+        </form>
+    </section>
+</div>
+</body>
+</html>

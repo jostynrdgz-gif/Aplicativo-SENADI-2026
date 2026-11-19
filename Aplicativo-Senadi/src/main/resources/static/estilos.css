@@ -520,3 +520,62 @@ select:focus-visible,
 .acciones-publicacion .boton-peligro:hover {
     background: #901c13;
 }
+
+.pestanas-matrices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+    padding: 6px;
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    background: var(--superficie);
+}
+
+.pestanas-matrices a {
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.pestanas-matrices a:hover {
+    background: var(--fondo);
+}
+
+.pestanas-matrices a[aria-current="page"] {
+    color: white;
+    background: var(--primario);
+}
+
+.carga-matriz {
+    display: grid;
+    grid-template-columns: minmax(140px, 200px) minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 12px 18px;
+}
+
+.carga-matriz label {
+    margin: 0 0 8px;
+}
+
+.carga-matriz select,
+.carga-matriz input[type="file"] {
+    width: 100%;
+    min-height: 46px;
+    padding: 10px;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+}
+
+.carga-matriz .nota {
+    grid-column: 1 / -1;
+    margin: 0;
+}
+
+@media (max-width: 700px) {
+    .carga-matriz {
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: stretch;
+    }
+}

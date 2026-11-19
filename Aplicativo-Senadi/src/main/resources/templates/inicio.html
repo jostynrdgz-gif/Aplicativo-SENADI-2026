@@ -9,7 +9,7 @@
     <title>SENADI · Matriz POA</title>
 
     <link rel="stylesheet"
-          th:href="@{/estilos.css(v=20261117combos)}">
+          th:href="@{/estilos.css(v=matrices)}">
 
     <script defer
             th:src="@{/js/matriz-poa.js(v=20261117combos)}">
@@ -19,106 +19,7 @@
 <body>
 <main>
 
-    <header>
-        <span class="marca">GESTIÓN DE DATOS</span>
-
-        <div class="sesion">
-            <strong th:text="${usuarioActual}"></strong>
-
-            <span class="etiqueta"
-                  th:text="${rolActual}"></span>
-
-            <form th:action="@{/logout}" method="post">
-                <button type="submit"
-                        class="boton-secundario">
-                    Cerrar sesión
-                </button>
-            </form>
-        </div>
-    </header>
-
-    <h1>Matriz POA</h1>
-
-    <p class="subtitulo">
-        Consulta la matriz completa y filtra sus columnas.
-    </p>
-
-    <p class="ok"
-       th:if="${mensaje}"
-       th:text="${mensaje}"
-       role="status"></p>
-
-    <p class="error"
-       th:if="${error}"
-       th:text="${error}"
-       role="alert"></p>
-
-    <!-- SOLO PLANIFICACIÓN -->
-    <section class="tarjeta" th:if="${puedeImportar}">
-    <h2>Publicar matriz POA</h2>
-
-    <!-- Formulario independiente para resetear -->
-    <form id="form-resetear-poa"
-          th:if="${lote != null}"
-          th:action="@{/matrices/resetear}"
-          method="post"
-          onsubmit="return confirm('¿Retirar las matrices POA publicadas? Los datos se conservarán como respaldo.');">
-
-        <input type="hidden"
-               name="matrizId"
-               th:value="${lote.id}">
-    </form>
-
-    <!-- Formulario para subir el Excel -->
-    <form th:action="@{/importaciones}"
-          method="post"
-          enctype="multipart/form-data">
-
-        <label for="archivo">Archivo Excel</label>
-
-        <input id="archivo"
-               name="archivo"
-               type="file"
-               accept=".xlsx,.xls"
-               required>
-
-        <p class="nota">
-            Usa la plantilla POA con encabezados en la fila 3.
-            Se importan las columnas visibles.
-            Recalcula y guarda el Excel antes de subirlo.
-            Tamaño máximo: 10 MB.
-        </p>
-
-        <div class="acciones-publicacion">
-
-            <button type="submit">
-                Subir matriz POA
-            </button>
-
-            <button th:if="${lote != null}"
-                    type="submit"
-                    form="form-resetear-poa"
-                    class="boton-peligro">
-                Resetear matrices POA
-            </button>
-
-        </div>
-
-    </form>
-</section>
-<section class="tarjeta" th:if="${puedeImportar}">
-    <h2>Importar reporte eSIGEF</h2>
-
-    <form th:action="@{/importaciones/esigef}"
-          method="post"
-          enctype="multipart/form-data">
-        <label for="archivo-esigef">Reporte eSIGEF en Excel</label>
-        <input id="archivo-esigef" name="archivo"
-               type="file" accept=".xls,.xlsx" required>
-
-        <button type="submit">Subir reporte eSIGEF</button>
-    </form>
-</section>
+    <div th:replace="~{fragmentos/matrices :: cabecera('poa')}"></div>
 
     <section class="tarjeta"
              th:if="${lote == null}">
@@ -134,6 +35,12 @@
              th:if="${lote != null}">
 
         <h2 th:text="${lote.archivo}"></h2>
+
+        <form th:if="${puedeImportar}" th:action="@{/matrices/resetear}" method="post"
+              onsubmit="return confirm('¿Retirar las matrices POA publicadas? Los datos se conservarán como respaldo.');">
+            <input type="hidden" name="matrizId" th:value="${lote.id}">
+            <button type="submit" class="boton-peligro">Resetear matrices POA</button>
+        </form>
 
         <p>
             Hoja:

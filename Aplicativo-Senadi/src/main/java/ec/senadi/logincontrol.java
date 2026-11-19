@@ -59,7 +59,7 @@ public class logincontrol {
                                 "/matrices/resetear"
                         ).hasRole("PLANIFICACION")
                         .requestMatchers(
-                                HttpMethod.GET, "/", "/importaciones/*"
+                                HttpMethod.GET, "/", "/importaciones/*", "/poa-combinada", "/esigef", "/devengado", "/codigos-unicos"
                         ).hasAnyRole("PLANIFICACION", "FINANCIERO")
                         .anyRequest().denyAll()
                 )

@@ -62,6 +62,17 @@ final class CruceEsigefPoa {
         return new ExcelReader.Tabla(reporte.hoja(), encabezados, filas);
     }
 
+    static int indiceCodigoValidado(List<String> encabezados) {
+        int primero = encabezados.size() - 4;
+        if (primero < 0) {
+            return -1;
+        }
+        var campos = encabezados.subList(primero, encabezados.size()).stream()
+                .map(EsigefExcelReader::normalizarEncabezado).toList();
+        return campos.equals(List.of("CODIGO UNICO", "CODIGO CANDIDATO", "ESTADO CRUCE",
+                "POA IMPORTACION ID")) ? primero : -1;
+    }
+
     private static String compararItem(String itemPoa, String renglon) {
         if (itemPoa == null) return "CODIGO_NO_EXISTE";
         if (itemPoa.isEmpty()) return "POA_SIN_ITEM";

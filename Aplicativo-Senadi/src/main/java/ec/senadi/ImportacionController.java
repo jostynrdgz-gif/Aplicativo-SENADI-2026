@@ -8,7 +8,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,21 +23,6 @@ public class ImportacionController {
 
     public ImportacionController(ImportacionService service) {
         this.service = service;
-    }
-
-    @ModelAttribute
-    public void usuarioActual(Authentication authentication, Model model) {
-        if (authentication == null) {
-            return;
-        }
-
-        boolean planificacion = authentication.getAuthorities().stream()
-                .anyMatch(autoridad ->
-                        "ROLE_PLANIFICACION".equals(autoridad.getAuthority()));
-
-        model.addAttribute("usuarioActual", authentication.getName());
-        model.addAttribute("rolActual", planificacion ? "PLANIFICACION" : "FINANCIERO");
-        model.addAttribute("puedeImportar", planificacion);
     }
 
     @GetMapping("/")
@@ -90,8 +74,22 @@ public class ImportacionController {
     @PostMapping("/importaciones")
     public String importar(
             @RequestParam("archivo") MultipartFile archivo,
+            @RequestParam(name = "tipo", defaultValue = "POA") String tipo,
             Authentication authentication,
             RedirectAttributes flash
+    ) {
+        return switch (tipo) {
+            case "POA" -> importarPoa(archivo, authentication, flash);
+            case "ESIGEF" -> importarEsigef(archivo, authentication, flash);
+            default -> {
+                flash.addFlashAttribute("error", "Selecciona POA o eSIGEF antes de subir el archivo.");
+                yield "redirect:/";
+            }
+        };
+    }
+
+    private String importarPoa(
+            MultipartFile archivo, Authentication authentication, RedirectAttributes flash
     ) {
         try {
             service.importarMatrizPoa(archivo, authentication.getName());
@@ -103,7 +101,6 @@ public class ImportacionController {
             flash.addFlashAttribute("error",
                     "No se pudo importar la POA. Revisa el archivo y la conexión a MySQL.");
         }
-
         return "redirect:/";
     }
 
@@ -114,7 +111,8 @@ public class ImportacionController {
             RedirectAttributes flash
     ) {
         try {
-            service.importarEsigef(archivo, authentication.getName());
+            long id = service.importarEsigef(archivo, authentication.getName());
+            flash.addAttribute("reporte", id);
             flash.addFlashAttribute("mensaje", "El reporte eSIGEF se guardó correctamente.");
         } catch (IllegalArgumentException e) {
             flash.addFlashAttribute("error", e.getMessage());
@@ -122,8 +120,7 @@ public class ImportacionController {
             flash.addFlashAttribute("error",
                     "No se pudo importar el reporte eSIGEF. Revisa el archivo y vuelve a intentarlo.");
         }
-
-        return "redirect:/";
+        return "redirect:/esigef";
     }
 
     @GetMapping("/importaciones/{id}")

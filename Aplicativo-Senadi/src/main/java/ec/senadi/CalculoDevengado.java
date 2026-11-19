@@ -1,6 +1,10 @@
 package ec.senadi;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +14,14 @@ public final class CalculoDevengado {
 
     private static final Pattern IMPORTE = Pattern.compile("[+-]?\\d+(?:[.,]\\d{1,2})?");
 
+    private static final List<DateTimeFormatter> FECHAS_APROBACION = List.of(
+            DateTimeFormatter.ISO_LOCAL_DATE,
+            DateTimeFormatter.ofPattern("d/M/uuuu").withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ofPattern("M/d/uu").withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ofPattern("M-d-uu").withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ofPattern("d-M-uuuu").withResolverStyle(ResolverStyle.STRICT)
+    );
+
     public record Clave(String itemPresupuestario, String codigoUnico) {}
 
     private CalculoDevengado() {}
@@ -17,12 +29,19 @@ public final class CalculoDevengado {
     public static Map<Clave, BigDecimal> sumar(
             ExcelReader.Tabla reporte, long idPoaVigente, String columnaImporte
     ) {
+        return sumar(reporte, idPoaVigente, columnaImporte, null);
+    }
+
+    public static Map<Clave, BigDecimal> sumar(
+            ExcelReader.Tabla reporte, long idPoaVigente, String columnaImporte, LocalDate corte
+    ) {
         List<String> encabezados = reporte.encabezados();
         int estado = columna(encabezados, "ESTADO");
         int cruce = columna(encabezados, "ESTADO CRUCE");
         int codigo = columna(encabezados, "CODIGO UNICO");
         int renglon = columna(encabezados, "RENGLON", "ITEM PRESUPUESTARIO");
         int poa = columna(encabezados, "POA IMPORTACION ID");
+        int fechaAprobacion = corte == null ? -1 : columna(encabezados, "FEC APROBADO");
         String nombreImporte = EsigefExcelReader.normalizarEncabezado(columnaImporte);
         if (!nombreImporte.startsWith("MONTO ") && !nombreImporte.equals("DEVENGADO")
                 && !nombreImporte.startsWith("DEVENGADO ")) {
@@ -42,6 +61,9 @@ public final class CalculoDevengado {
                     || !"VALIDADO".equals(valor(valores, cruce))) {
                 continue;
             }
+            if (corte != null && fecha(valor(valores, fechaAprobacion), fila.numero()).isAfter(corte)) {
+                continue;
+            }
             String codigoUnico = valor(valores, codigo);
             String item = valor(valores, renglon);
             if (codigoUnico.isEmpty() || item.isEmpty()) {
@@ -57,6 +79,17 @@ public final class CalculoDevengado {
             totales.merge(new Clave(item, codigoUnico), monto, BigDecimal::add);
         }
         return Map.copyOf(totales);
+    }
+
+    private static LocalDate fecha(String texto, int fila) {
+        for (var formato : FECHAS_APROBACION) {
+            try {
+                return LocalDate.parse(texto, formato);
+            } catch (DateTimeParseException e) {
+                // Prueba el siguiente formato del reporte.
+            }
+        }
+        throw new IllegalArgumentException("Fecha de aprobación vacía o inválida en la fila " + fila + ".");
     }
 
     private static int columna(List<String> encabezados, String... nombres) {

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SENADI | POACOMBINADA</title>
+    <link rel="stylesheet" th:href="@{/estilos.css(v=matrices)}">
+    <script defer th:src="@{/js/matriz-poa.js(v=20261117combos)}"></script>
+</head>
+<body>
+<main>
+    <div th:replace="~{fragmentos/matrices :: cabecera('combinada')}"></div>
+
+    <section class="tarjeta" th:if="${matriz == null}">
+        <p role="status">Sube una matriz POA para ver la POA combinada.</p>
+    </section>
+    <section class="tarjeta" th:if="${matriz != null}">
+        <h2 th:text="${matriz.archivo}"></h2>
+        <p th:if="${#lists.isEmpty(reportes)}" role="status">
+            Sube un reporte eSIGEF para cruzar los códigos y calcular el devengado.
+        </p>
+
+        <form th:unless="${#lists.isEmpty(reportes)}" th:action="@{/poa-combinada}" method="get">
+            <label for="reporte">Reporte eSIGEF</label>
+            <select id="reporte" name="reporte">
+                <option th:each="r : ${reportes}" th:value="${r.id}"
+                        th:text="${r.archivo + ' (carga ' + r.id + ')'}"
+                        th:selected="${r.id == reporteSeleccionado}"></option>
+            </select>
+
+            <label for="importe">Columna de importe del eSIGEF</label>
+            <input id="importe" name="importe" type="text" list="importes"
+                   th:value="${importeSeleccionado}" maxlength="100">
+            <datalist id="importes">
+                <option value="MONTO_RENGLON"></option>
+                <option value="MONTO_GASTO"></option>
+                <option value="MONTO_PRESUPUESTARIO"></option>
+                <option value="DEVENGADO"></option>
+            </datalist>
+
+            <label for="corte">Fecha de corte</label>
+            <input id="corte" name="corte" type="date" th:value="${corteSeleccionado}">
+            <p class="nota">Para calcular el devengado, elige la columna de importe y la fecha de corte.</p>
+
+            <p><button type="submit">Consultar POA combinada</button></p>
+        </form>
+        <p class="error" th:if="${matriz.errorConsulta}" th:text="${matriz.errorConsulta}" role="alert"></p>
+
+        <div id="desplazamiento-superior" class="desplazamiento-superior" tabindex="0"
+             role="region" aria-label="Desplazamiento horizontal" aria-controls="tabla-matriz">
+            <div id="contenido-desplazamiento"></div>
+        </div>
+        <div id="tabla-matriz" class="tabla" tabindex="0" role="region" aria-label="Matriz POA combinada">
+            <table>
+                <thead>
+                <tr>
+                    <th scope="col" th:each="encabezado : ${matriz.encabezados}" th:text="${encabezado}"></th>
+                    <th scope="col">Código único extraído del eSIGEF</th>
+                    <th scope="col">Devengado calculado (USD)</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="fila : ${matriz.filas}">
+                    <td th:each="encabezado, estado : ${matriz.encabezados}"
+                        th:text="${estado.index < #lists.size(fila.valores) ? fila.valores[estado.index] : ''}"></td>
+                    <td th:text="${fila.codigoEsigef.isEmpty() ? '—' : fila.codigoEsigef}"></td>
+                    <td th:text="${fila.devengado == null ? '—' : #numbers.formatDecimal(fila.devengado, 1, 'POINT', 2, 'COMMA')}"></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(matriz.filas)}">
+                    <td th:colspan="${#lists.size(matriz.encabezados) + 2}">La POA no contiene filas.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <footer>Servicio Nacional de Derechos Intelectuales</footer>
+</main>
+</body>
+</html>
