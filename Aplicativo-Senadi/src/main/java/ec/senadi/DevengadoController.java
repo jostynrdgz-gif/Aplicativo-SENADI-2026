@@ -29,10 +29,12 @@ public class DevengadoController {
             seleccionado = reportes.getFirst().id();
         }
 
-        model.addAttribute("reportes", reportes);
         model.addAttribute("reporteSeleccionado", seleccionado);
-        model.addAttribute("importeSeleccionado", importe);
-        model.addAttribute("corteSeleccionado", corte);
+        if (seleccionado != null) {
+            long id = seleccionado;
+            reportes.stream().filter(r -> r.id() == id).findFirst()
+                    .ifPresent(r -> model.addAttribute("archivoReporte", r.archivo()));
+        }
         model.addAttribute("matriz", service.consultarPoaCombinada(seleccionado, importe, corte));
         return "devengado";
     }

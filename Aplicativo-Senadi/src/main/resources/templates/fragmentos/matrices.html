@@ -14,26 +14,19 @@
     </header>
 
     <h1>Matrices</h1>
-    <nav class="pestanas-matrices" aria-label="Matrices disponibles">
-        <a th:href="@{/}" th:attr="aria-current=${pestana == 'poa' ? 'page' : null}">POA</a>
-        <a th:href="${reporteSeleccionado == null} ? @{/esigef} : @{/esigef(reporte=${reporteSeleccionado})}"
-           th:attr="aria-current=${pestana == 'esigef' ? 'page' : null}">ESIGEF</a>
-        <a th:href="${reporteSeleccionado == null} ? @{/poa-combinada} : @{/poa-combinada(reporte=${reporteSeleccionado})}"
-           th:attr="aria-current=${pestana == 'combinada' ? 'page' : null}">POACOMBINADA</a>
-    </nav>
-
     <p class="ok" th:if="${mensaje}" th:text="${mensaje}" role="status"></p>
     <p class="error" th:if="${error}" th:text="${error}" role="alert"></p>
 
-    <section class="tarjeta" th:if="${puedeImportar}" aria-labelledby="titulo-carga">
+    <section class="tarjeta" th:if="${puedeImportar and pestana == 'poa'}"
+             aria-labelledby="titulo-carga">
         <h2 id="titulo-carga">Subir matriz</h2>
         <form class="carga-matriz" th:action="@{/importaciones}" method="post"
               enctype="multipart/form-data">
-            <div>
+            <div class="tipo-matriz">
                 <label for="tipo-matriz">Tipo de matriz</label>
                 <select id="tipo-matriz" name="tipo" required>
-                    <option value="POA" th:selected="${pestana == 'poa' or pestana == 'combinada'}">POA</option>
-                    <option value="ESIGEF" th:selected="${pestana == 'esigef'}">eSIGEF</option>
+                    <option value="POA">POA</option>
+                    <option value="ESIGEF">eSIGEF</option>
                 </select>
             </div>
             <div>
@@ -47,6 +40,15 @@
             </p>
         </form>
     </section>
+
+    <nav class="pestanas-matrices" aria-label="Matrices disponibles">
+        <a th:if="${puedeImportar}" th:href="@{/}"
+           th:attr="aria-current=${pestana == 'poa' ? 'page' : null}">POA</a>
+        <a th:href="${reporteSeleccionado == null} ? @{/esigef} : @{/esigef(reporte=${reporteSeleccionado})}"
+           th:attr="aria-current=${pestana == 'esigef' ? 'page' : null}">ESIGEF</a>
+        <a th:href="${reporteSeleccionado == null} ? @{/poa-combinada} : @{/poa-combinada(reporte=${reporteSeleccionado})}"
+           th:attr="aria-current=${pestana == 'combinada' ? 'page' : null}">POACOMBINADA</a>
+    </nav>
 </div>
 </body>
 </html>

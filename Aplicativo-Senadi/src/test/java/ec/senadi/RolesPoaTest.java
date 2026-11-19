@@ -95,7 +95,7 @@ class RolesPoaTest {
         mvc.perform(formLogin().user("financiero").password("incorrecta"))
             .andExpect(unauthenticated());
     }
-    @Test void financieroVeMensajeSinPoaYNoTieneFormulario() throws Exception {
+    @Test void financieroVeEsigefSinFormularioYNoPuedeAbrirPoa() throws Exception {
         // Una importación genérica de prueba no constituye una publicación POA.
         jdbc.update(
     """
@@ -110,11 +110,13 @@ class RolesPoaTest {
     "GENERICO"
 );
         mvc.perform(get("/").with(user("financiero").roles("FINANCIERO")))
+            .andExpect(status().isForbidden());
+        mvc.perform(get("/esigef").with(user("financiero").roles("FINANCIERO")))
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString("No se ha subido ninguna matriz POA.")))
+            .andExpect(content().string(containsString("No hay reportes eSIGEF cargados.")))
             .andExpect(content().string(containsString("FINANCIERO")))
             .andExpect(content().string(not(containsString("type=\"file\""))))
-            .andExpect(content().string(not(containsString("Últimas importaciones"))));
+            .andExpect(content().string(not(containsString(">POA</a>"))));
     }
     @Test void financieroNoPuedeImportarAunqueEnviePeticionDirecta() throws Exception {
         mvc.perform(multipart("/importaciones").file(excel()).with(csrf())
@@ -128,7 +130,7 @@ class RolesPoaTest {
             .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/"));
         assertNotNull(service.idPoaVigente());
         assertEquals("planificacion", jdbc.queryForObject("SELECT subido_por FROM excel_importacion", String.class));
-        mvc.perform(get("/").with(user("financiero").roles("FINANCIERO")))
+        mvc.perform(get("/poa-combinada").with(user("financiero").roles("FINANCIERO")))
             .andExpect(status().isOk())
             .andExpect(content().string(containsString("poa.xlsx")))
             .andExpect(content().string(containsString("&lt;script&gt;")))
@@ -152,11 +154,13 @@ class RolesPoaTest {
             jdbc.update("INSERT INTO excel_fila(importacion_id,numero_fila,valores) VALUES(?,?,?)", actual, i + 1, "[\"Fila " + i + "\"]");
         }
         jdbc.update("UPDATE excel_importacion SET filas=258 WHERE id=?", actual);
-        mvc.perform(get("/importaciones/" + anterior).with(user("financiero").roles("FINANCIERO")))
+        mvc.perform(get("/importaciones/" + anterior).with(user("planificacion").roles("PLANIFICACION")))
             .andExpect(status().isNotFound());
         mvc.perform(get("/importaciones/" + actual).with(user("financiero").roles("FINANCIERO")))
+            .andExpect(status().isForbidden());
+        mvc.perform(get("/importaciones/" + actual).with(user("planificacion").roles("PLANIFICACION")))
             .andExpect(redirectedUrl("/"));
-        mvc.perform(get("/").param("pagina", "2").with(user("financiero").roles("FINANCIERO")))
+        mvc.perform(get("/").param("pagina", "2").with(user("planificacion").roles("PLANIFICACION")))
             .andExpect(status().isOk()).andExpect(content().string(containsString("Fila 258")));
     }
     @Test void csrfEsObligatorioYCerrarSesionInvalidaAcceso() throws Exception {

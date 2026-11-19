@@ -550,9 +550,14 @@ select:focus-visible,
 
 .carga-matriz {
     display: grid;
-    grid-template-columns: minmax(140px, 200px) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: end;
     gap: 12px 18px;
+}
+
+.carga-matriz .tipo-matriz {
+    grid-column: 1 / -1;
+    width: min(100%, 200px);
 }
 
 .carga-matriz label {

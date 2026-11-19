@@ -11,6 +11,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 
 @Configuration
 public class logincontrol {
@@ -58,8 +59,10 @@ public class logincontrol {
                                 "/importaciones/esigef",
                                 "/matrices/resetear"
                         ).hasRole("PLANIFICACION")
+                        .requestMatchers(HttpMethod.GET, "/", "/importaciones/*")
+                        .hasRole("PLANIFICACION")
                         .requestMatchers(
-                                HttpMethod.GET, "/", "/importaciones/*", "/poa-combinada", "/esigef", "/devengado", "/codigos-unicos"
+                                HttpMethod.GET, "/poa-combinada", "/esigef", "/devengado", "/codigos-unicos"
                         ).hasAnyRole("PLANIFICACION", "FINANCIERO")
                         .anyRequest().denyAll()
                 )
@@ -68,7 +71,14 @@ public class logincontrol {
                         .loginProcessingUrl("/login")
                         .usernameParameter("username")
                         .passwordParameter("password")
-                        .defaultSuccessUrl("/", true)
+                        .successHandler((solicitud, respuesta, usuario) -> {
+                            boolean esPlanificacion = usuario.getAuthorities().stream()
+                                    .anyMatch(autoridad -> "ROLE_PLANIFICACION".equals(autoridad.getAuthority()));
+                            var entrada = new SavedRequestAwareAuthenticationSuccessHandler();
+                            entrada.setAlwaysUseDefaultTargetUrl(true);
+                            entrada.setDefaultTargetUrl(esPlanificacion ? "/" : "/esigef");
+                            entrada.onAuthenticationSuccess(solicitud, respuesta, usuario);
+                        })
                         .failureUrl("/login?error")
                         .permitAll()
                 )

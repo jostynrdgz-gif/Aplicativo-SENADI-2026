@@ -58,7 +58,7 @@ class ConsultasEsigefTest {
         String token = csrf.group(1);
         var autenticado = mvc.perform(post("/login").session(session).param("_csrf", token)
                 .param("username", "financiero").param("password", "FinTest123!"))
-                .andExpect(redirectedUrl("/")).andReturn();
+                .andExpect(redirectedUrl("/esigef")).andReturn();
         var financiero = (MockHttpSession) autenticado.getRequest().getSession(false);
 
         mvc.perform(get("/esigef").session(financiero).param("reporte", Long.toString(id))
@@ -121,7 +121,7 @@ class ConsultasEsigefTest {
                 .andExpect(content().string(not(containsString("type=\"file\""))))
                 .andReturn().getResponse().getContentAsString();
         var pestanas = respuesta.substring(respuesta.indexOf("<nav"), respuesta.indexOf("</nav>"));
-        assertEquals(3L, Pattern.compile("<a ").matcher(pestanas).results().count());
+        assertEquals(2L, Pattern.compile("<a ").matcher(pestanas).results().count());
 
         var combinada = service.consultarPoaCombinada(id, "MONTO_RENGLON", LocalDate.of(2026, 8, 4));
         var primera = combinada.filas().get(0);

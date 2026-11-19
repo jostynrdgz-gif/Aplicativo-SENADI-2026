@@ -22,29 +22,31 @@ public class EsigefConsultaController {
             @RequestParam(name = "codigo", defaultValue = "") String codigo,
             Model model
     ) throws Exception {
-        Long seleccionado = seleccionarReporte(reporte, model);
-        model.addAttribute("descripcion", descripcion);
-        model.addAttribute("renglon", renglon);
-        model.addAttribute("codigo", codigo);
-        model.addAttribute("filas", List.of());
-        if (seleccionado != null) {
-            try {
-                model.addAttribute("filas", service.consultarEsigef(seleccionado, descripcion, renglon, codigo));
-            } catch (IllegalArgumentException e) {
-                model.addAttribute("errorConsulta", e.getMessage());
-            }
-        }
-        return "esigef";
-    }
-
-    private Long seleccionarReporte(Long solicitado, Model model) {
         var reportes = service.reportesParaDevengado();
-        Long seleccionado = solicitado;
+        Long seleccionado = reporte;
         if (seleccionado == null && !reportes.isEmpty()) {
             seleccionado = reportes.getFirst().id();
         }
-        model.addAttribute("reportes", reportes);
         model.addAttribute("reporteSeleccionado", seleccionado);
-        return seleccionado;
+        if (seleccionado != null) {
+            try {
+                if (Boolean.TRUE.equals(model.getAttribute("puedeImportar"))) {
+                    model.addAttribute("matriz", service.consultarEsigefCompleto(seleccionado));
+                } else {
+                    var filas = service.consultarEsigef(seleccionado, descripcion, renglon, codigo).stream()
+                            .map(fila -> List.of(fila.descripcion(), fila.renglon(),
+                                    fila.codigo().isEmpty() ? "—" : fila.codigo()))
+                            .toList();
+                    model.addAttribute("matriz", new ImportacionService.MatrizConsultaEsigef(
+                            List.of("Descripción", "Renglón / ítem presupuestario", "Código único"), filas));
+                }
+            } catch (IllegalArgumentException e) {
+                model.addAttribute("errorConsulta", e.getMessage());
+            }
+            long id = seleccionado;
+            reportes.stream().filter(r -> r.id() == id).findFirst()
+                    .ifPresent(r -> model.addAttribute("archivoReporte", r.archivo()));
+        }
+        return "esigef";
     }
 }

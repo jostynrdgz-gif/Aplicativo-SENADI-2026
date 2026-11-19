@@ -239,6 +239,19 @@ public class ImportacionService {
 
     public record FilaConsultaEsigef(String descripcion, String renglon, String codigo) {}
 
+    public record MatrizConsultaEsigef(List<String> encabezados, List<List<String>> filas) {}
+
+    @Transactional(readOnly = true)
+    public MatrizConsultaEsigef consultarEsigefCompleto(long idReporte) throws Exception {
+        var reporte = leerReporteEsigef(idReporte);
+        int inicioCruce = CruceEsigefPoa.indiceCodigoValidado(reporte.encabezados());
+        int columnas = inicioCruce >= 0 ? inicioCruce : reporte.encabezados().size();
+        var filas = reporte.filas().stream()
+                .map(fila -> fila.valores().subList(0, Math.min(columnas, fila.valores().size())))
+                .toList();
+        return new MatrizConsultaEsigef(reporte.encabezados().subList(0, columnas), filas);
+    }
+
     @Transactional(readOnly = true)
     public List<FilaConsultaEsigef> consultarEsigef(
             long idReporte, String descripcion, String renglon, String codigo
@@ -249,7 +262,7 @@ public class ImportacionService {
         String filtroDescripcion = normalizarBusqueda(descripcion);
         String filtroRenglon = normalizarBusqueda(renglon);
         String filtroCodigo = normalizarBusqueda(codigo);
-        var reporte = leerReporteCruzado(idReporte, idPoaVigente());
+        var reporte = leerReporteEsigef(idReporte);
         var encabezados = reporte.encabezados().stream()
                 .map(EsigefExcelReader::normalizarEncabezado).toList();
         int indiceDescripcion = encabezados.indexOf("DESCRIPCION");
@@ -261,19 +274,17 @@ public class ImportacionService {
             throw new IllegalArgumentException("El reporte no contiene descripción y renglón.");
         }
 
-        int indiceCodigo = CruceEsigefPoa.indiceCodigoValidado(reporte.encabezados());
-
         List<FilaConsultaEsigef> filas = new ArrayList<>();
         for (var fila : reporte.filas()) {
             var valores = fila.valores();
             String texto = valorEn(valores, indiceDescripcion);
             String item = valorEn(valores, indiceRenglon);
-            String codigoValidado = indiceCodigo >= 0 && "VALIDADO".equals(valorEn(valores, indiceCodigo + 2))
-                    ? valorEn(valores, indiceCodigo) : "";
+            String codigos = texto.stripLeading().startsWith("=") ? ""
+                    : String.join(", ", new TreeSet<>(EsigefExcelReader.codigosEnDescripcion(texto)));
             if (normalizarBusqueda(texto).contains(filtroDescripcion)
                     && normalizarBusqueda(item).contains(filtroRenglon)
-                    && normalizarBusqueda(codigoValidado).contains(filtroCodigo)) {
-                filas.add(new FilaConsultaEsigef(texto, item, codigoValidado));
+                    && normalizarBusqueda(codigos).contains(filtroCodigo)) {
+                filas.add(new FilaConsultaEsigef(texto, item, codigos));
             }
         }
         return filas;
@@ -306,12 +317,11 @@ public class ImportacionService {
             try {
                 var reporte = leerReporteCruzado(idReporte, idPoa);
                 codigosValidados = clavesValidadas(reporte);
-                if (!importe.isBlank() || corte != null) {
-                    if (importe.isBlank() || importe.length() > 100 || corte == null) {
-                        throw new IllegalArgumentException("Indica la columna de importe y la fecha de corte.");
-                    }
-                    totales = CalculoDevengado.sumar(reporte, idPoa, importe, corte);
+                if (importe.length() > 100) {
+                    throw new IllegalArgumentException("La columna de importe no es válida.");
                 }
+                String columnaImporte = importe.isBlank() ? columnaDevengado(reporte) : importe;
+                totales = CalculoDevengado.sumar(reporte, idPoa, columnaImporte, corte);
             } catch (IllegalArgumentException e) {
                 errorConsulta = e.getMessage();
             }
@@ -325,6 +335,18 @@ public class ImportacionService {
             filas.add(new FilaPoaCombinada(valores, codigoEsigef, totales.get(clave)));
         }
         return new PoaCombinada((String) poa.get("archivo"), encabezados, filas, errorConsulta);
+    }
+
+    private static String columnaDevengado(ExcelReader.Tabla reporte) {
+        var encabezados = reporte.encabezados().stream()
+                .map(EsigefExcelReader::normalizarEncabezado).toList();
+        if (encabezados.contains("MONTO RENGLON")) {
+            return "MONTO_RENGLON";
+        }
+        if (encabezados.contains("DEVENGADO")) {
+            return "DEVENGADO";
+        }
+        throw new IllegalArgumentException("El reporte eSIGEF debe incluir MONTO_RENGLON o DEVENGADO.");
     }
 
     private static Set<CalculoDevengado.Clave> clavesValidadas(ExcelReader.Tabla reporte) {

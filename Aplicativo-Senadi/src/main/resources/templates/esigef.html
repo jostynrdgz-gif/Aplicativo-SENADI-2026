@@ -3,52 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SENADI · Consulta eSIGEF</title>
+    <title>SENADI | ESIGEF</title>
     <link rel="stylesheet" th:href="@{/estilos.css(v=matrices)}">
+    <script defer th:src="@{/js/matriz-poa.js(v=20261117combos)}"></script>
 </head>
 <body>
 <main>
     <div th:replace="~{fragmentos/matrices :: cabecera('esigef')}"></div>
-    <p th:if="${#lists.isEmpty(reportes)}" role="status">No hay reportes eSIGEF cargados.</p>
-    <section class="tarjeta" th:unless="${#lists.isEmpty(reportes)}">
-        <form th:action="@{/esigef}" method="get">
-            <label for="reporte">Reporte</label>
-            <select id="reporte" name="reporte" required>
-                <option th:each="r : ${reportes}" th:value="${r.id}"
-                        th:text="${r.archivo + ' (carga ' + r.id + ')'}"
-                        th:selected="${r.id == reporteSeleccionado}"></option>
-            </select>
-            <label for="descripcion">Descripción</label>
-            <input id="descripcion" name="descripcion" type="search" maxlength="150" th:value="${descripcion}">
-            <label for="renglon">Renglón / ítem presupuestario</label>
-            <input id="renglon" name="renglon" type="search" maxlength="150" th:value="${renglon}">
-            <label for="codigo">Código único</label>
-            <input id="codigo" name="codigo" type="search" maxlength="150" th:value="${codigo}">
-            <div class="acciones-tabla">
-                <button type="submit">Aplicar filtros</button>
-                <a class="boton" th:href="@{/esigef(reporte=${reporteSeleccionado})}">Limpiar filtros</a>
-            </div>
-        </form>
+
+    <section class="tarjeta">
         <p class="error" th:if="${errorConsulta}" th:text="${errorConsulta}" role="alert"></p>
-        <div th:if="${errorConsulta == null}">
-            <p th:text="${#lists.size(filas) + ' resultados'}" role="status"></p>
-            <p class="nota">El código se muestra cuando coincide con el código interno y el ítem de la POA vigente.</p>
-            <div class="tabla" tabindex="0" role="region" aria-label="Consulta de filas eSIGEF">
+        <p th:if="${reporteSeleccionado == null}" role="status">No hay reportes eSIGEF cargados.</p>
+        <div th:if="${matriz != null}">
+            <h2 th:text="${archivoReporte}"></h2>
+            <p class="nota" th:text="${#lists.size(matriz.filas) + ' filas'}" role="status"></p>
+            <div id="desplazamiento-superior" class="desplazamiento-superior" tabindex="0"
+                 role="region" aria-label="Desplazamiento horizontal" aria-controls="tabla-matriz">
+                <div id="contenido-desplazamiento"></div>
+            </div>
+            <div id="tabla-matriz" class="tabla" tabindex="0" role="region" aria-label="Matriz eSIGEF">
                 <table>
-                    <thead><tr>
-                        <th scope="col">Descripción</th>
-                        <th scope="col">Renglón / ítem presupuestario</th>
-                        <th scope="col">Código único</th>
-                    </tr></thead>
+                    <thead>
+                    <tr>
+                        <th scope="col" th:each="encabezado : ${matriz.encabezados}"
+                            th:text="${encabezado}"></th>
+                    </tr>
+                    </thead>
                     <tbody>
-                        <tr th:each="fila : ${filas}">
-                            <td th:text="${fila.descripcion}"></td>
-                            <td th:text="${fila.renglon}"></td>
-                            <td th:text="${fila.codigo.isEmpty() ? '—' : fila.codigo}"></td>
-                        </tr>
-                        <tr th:if="${#lists.isEmpty(filas)}">
-                            <td colspan="3">No hay filas que coincidan con los filtros.</td>
-                        </tr>
+                    <tr th:each="fila : ${matriz.filas}">
+                        <td th:each="encabezado, estado : ${matriz.encabezados}"
+                            th:text="${estado.index < #lists.size(fila) ? fila[estado.index] : ''}"></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(matriz.filas)}">
+                        <td th:colspan="${#lists.size(matriz.encabezados)}">No hay filas que mostrar.</td>
+                    </tr>
                     </tbody>
                 </table>
             </div>
